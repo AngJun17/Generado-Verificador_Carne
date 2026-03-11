@@ -373,7 +373,7 @@
 
     <!-- Cámara -->
     <div class="tab-content active" id="tab-camera">
-      <div class="scanner-container" id="scannerContainer">
+      <div class="scanner-container" id="scannerContainer" style="display:none">
         <video id="video" playsinline muted autoplay></video>
         <div class="scan-overlay">
           <div class="scan-box">
@@ -381,9 +381,14 @@
             <div class="scan-line"></div>
           </div>
         </div>
-        <div class="scanner-status" id="scannerStatus">LISTO PARA ESCANEAR</div>
+        <div class="scanner-status" id="scannerStatus">APUNTA AL QR Y CAPTURA</div>
       </div>
-      <button class="btn-primary" onclick="startCamera()" id="btnCamera">📷 ACTIVAR CÁMARA</button>
+      <!-- Preview de foto capturada -->
+      <canvas id="photoPreview" style="display:none;width:100%;border-radius:12px;border:1px solid var(--border)"></canvas>
+      <!-- Input oculto para subir foto directo -->
+      <input type="file" id="fileInput" accept="image/*" capture="environment" style="display:none" onchange="handlePhoto(this)">
+      <button class="btn-primary" onclick="document.getElementById('fileInput').click()" id="btnCamera">📷 TOMAR FOTO DEL QR</button>
+      <button class="btn-primary" onclick="startVideoScanner()" id="btnVideo" style="margin-top:8px;background:linear-gradient(135deg,#1a2235,#1e3a5f);color:var(--accent);border:1px solid var(--border)">🎥 Usar cámara en vivo</button>
       <button class="btn-secondary" onclick="stopCamera()" id="btnStop" style="display:none">⏹ Detener cámara</button>
     </div>
 
@@ -452,7 +457,57 @@ function switchTab(name){
 // ─── CÁMARA ─────────────────────────────────────────────────────────────────
 let stream=null, scanInterval=null, scanning=false;
 
-async function startCamera(){
+// MÉTODO PRINCIPAL: Tomar foto y escanear
+function handlePhoto(input){
+  const file = input.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e){
+    const img = new Image();
+    img.onload = function(){
+      const canvas = document.getElementById('photoPreview');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+      canvas.style.display='block';
+
+      // Intentar leer QR de la foto
+      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      let found = false;
+      const attempts = ['attemptBoth','dontInvert','onlyInvert'];
+      for(const attempt of attempts){
+        const code = jsQR(imgData.data, imgData.width, imgData.height, {inversionAttempts: attempt});
+        if(code && code.data){
+          found = true;
+          verifyCode(code.data.trim());
+          break;
+        }
+      }
+      if(!found){
+        // Intentar con imagen reducida
+        const small = document.createElement('canvas');
+        small.width = 800; small.height = 800;
+        const sctx = small.getContext('2d');
+        sctx.drawImage(img, 0, 0, 800, 800);
+        const sd = sctx.getImageData(0,0,800,800);
+        const code2 = jsQR(sd.data, sd.width, sd.height, {inversionAttempts:'attemptBoth'});
+        if(code2 && code2.data){
+          verifyCode(code2.data.trim());
+        } else {
+          alert('No se detectó ningún QR en la foto. Intenta con mejor iluminación o más cerca.');
+        }
+      }
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+  // Reset input para poder tomar otra foto
+  input.value='';
+}
+
+// MÉTODO ALTERNATIVO: Video en vivo
+async function startVideoScanner(){
   try{
     stream = await navigator.mediaDevices.getUserMedia({
       video:{ facingMode:{ideal:'environment'}, width:{ideal:1280}, height:{ideal:720} }
@@ -460,13 +515,14 @@ async function startCamera(){
     const video = document.getElementById('video');
     video.srcObject = stream;
     await video.play();
+    document.getElementById('scannerContainer').style.display='block';
     document.getElementById('btnCamera').style.display='none';
+    document.getElementById('btnVideo').style.display='none';
     document.getElementById('btnStop').style.display='block';
-    document.getElementById('scannerStatus').textContent='ESCANEANDO...';
     scanning=true;
-    scanInterval = setInterval(scanFrame, 200);
+    scanInterval = setInterval(scanFrame, 150);
   }catch(e){
-    alert('No se pudo acceder a la cámara. Usa el modo manual o permite el permiso de cámara.');
+    alert('No se pudo acceder a la cámara.');
   }
 }
 
@@ -474,9 +530,10 @@ function stopCamera(){
   scanning=false;
   clearInterval(scanInterval);
   if(stream){ stream.getTracks().forEach(t=>t.stop()); stream=null; }
+  document.getElementById('scannerContainer').style.display='none';
   document.getElementById('btnCamera').style.display='block';
+  document.getElementById('btnVideo').style.display='block';
   document.getElementById('btnStop').style.display='none';
-  document.getElementById('scannerStatus').textContent='LISTO PARA ESCANEAR';
 }
 
 function scanFrame(){
@@ -488,28 +545,10 @@ function scanFrame(){
   const ctx=canvas.getContext('2d');
   ctx.drawImage(video,0,0);
   const imgData=ctx.getImageData(0,0,canvas.width,canvas.height);
-  
-  // Intentar con todas las opciones de inversion
-  const attempts = ['dontInvert','onlyInvert','attemptBoth'];
+  const attempts=['attemptBoth','dontInvert','onlyInvert'];
   for(const attempt of attempts){
     const code=jsQR(imgData.data,imgData.width,imgData.height,{inversionAttempts:attempt});
-    if(code && code.data){
-      stopCamera();
-      verifyCode(code.data.trim());
-      return;
-    }
-  }
-  
-  // Si no funciona con resolucion completa, intentar con resolucion reducida
-  const small=document.createElement('canvas');
-  small.width=640; small.height=480;
-  const sctx=small.getContext('2d');
-  sctx.drawImage(video,0,0,640,480);
-  const smallData=sctx.getImageData(0,0,640,480);
-  const code2=jsQR(smallData.data,smallData.width,smallData.height,{inversionAttempts:'attemptBoth'});
-  if(code2 && code2.data){
-    stopCamera();
-    verifyCode(code2.data.trim());
+    if(code && code.data){ stopCamera(); verifyCode(code.data.trim()); return; }
   }
 }
 
@@ -523,7 +562,7 @@ function verifyManual(){
 }
 
 const CARRERAS={
-  '07':'Electrónica','08':'Sistemas','14':'Telecomunicaciones'
+  '01':'Electrónica','02':'Sistemas','03':'Telecomunicaciones'
 };
 
 function verifyCode(code12str){
