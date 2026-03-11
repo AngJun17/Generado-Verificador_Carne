@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Verificador de Carné — UMES</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&family=Exo+2:wght@300;400;600;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
+<style>
+  :root {
+    --bg: #0a0e1a;
+    --surface: #111827;
+    --surface2: #1a2235;
+    --accent: #00d4ff;
+    --green: #00ff88;
+    --red: #ff3860;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --border: #1e3a5f;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Exo 2', sans-serif;
+    min-height: 100vh;
+    background-image:
+      radial-gradient(ellipse at 20% 50%, rgba(0,212,255,0.04) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 20%, rgba(0,153,187,0.06) 0%, transparent 40%);
+  }
+
+  body::before {
+    content:'';
+    position:fixed; inset:0;
+    background-image:
+      linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events:none; z-index:0;
+  }
+
+  .container {
+    position:relative; z-index:1;
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 24px 16px;
+  }
+
+  header {
+    text-align:center;
+    margin-bottom: 28px;
+    animation: fadeDown 0.6s ease;
+  }
+
+  .logo-line {
+    font-family:'Share Tech Mono',monospace;
+    font-size:10px; color:var(--accent);
+    letter-spacing:4px; text-transform:uppercase;
+    margin-bottom:6px; opacity:0.8;
+  }
+
+  h1 {
+    font-family:'Rajdhani',sans-serif;
+    font-size: clamp(26px,6vw,42px);
+    font-weight:700; letter-spacing:2px;
+    background: linear-gradient(135deg,#fff 30%,var(--accent) 100%);
+    -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+    background-clip:text;
+  }
+
+  .subtitle { font-size:12px; color:var(--muted); margin-top:6px; letter-spacing:1px; }
+  .divider { width:50px; height:2px; background:linear-gradient(90deg,transparent,var(--accent),transparent); margin:12px auto; }
+
+  .card {
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:16px;
+    padding:24px;
+    margin-bottom:20px;
+    position:relative; overflow:hidden;
+    animation: fadeUp 0.5s ease;
+  }
+
+  .card::before {
+    content:'';
+    position:absolute; top:0; left:0; right:0; height:2px;
+    background:linear-gradient(90deg,transparent,var(--accent),transparent);
+  }
+
+  .card-title {
+    font-family:'Rajdhani',sans-serif;
+    font-size:14px; font-weight:600;
+    color:var(--accent); letter-spacing:3px;
+    text-transform:uppercase; margin-bottom:18px;
+    display:flex; align-items:center; gap:8px;
+  }
+  .card-title::before { content:'▶'; font-size:9px; }
+
+  /* Vector control */
+  .vector-display {
+    background:var(--surface2);
+    border:1px solid var(--border);
+    border-radius:8px; padding:10px 14px;
+    font-family:'Share Tech Mono',monospace;
+    font-size:13px; color:var(--accent); letter-spacing:2px;
+  }
+
+  .vector-inputs { display:none; grid-template-columns:repeat(12,1fr); gap:5px; margin-top:8px; }
+  .vector-inputs.show { display:grid; }
+  .vector-inputs input {
+    background:var(--surface2); border:1px solid var(--border);
+    border-radius:6px; padding:8px 2px; text-align:center;
+    color:var(--text); font-family:'Share Tech Mono',monospace;
+    font-size:12px; outline:none; width:100%;
+  }
+  .vector-inputs input:focus { border-color:var(--accent); }
+
+  .toggle-vector {
+    background:none; border:1px solid var(--border);
+    color:var(--muted); padding:5px 12px;
+    border-radius:6px; font-family:'Share Tech Mono',monospace;
+    font-size:10px; cursor:pointer; transition:all 0.2s;
+    margin-top:8px; letter-spacing:1px;
+  }
+  .toggle-vector:hover { border-color:var(--accent); color:var(--accent); }
+
+  /* Scanner */
+  .scanner-container {
+    position:relative;
+    width:100%; aspect-ratio:1;
+    border-radius:12px; overflow:hidden;
+    background:#000;
+    border:2px solid var(--border);
+  }
+
+  #video {
+    width:100%; height:100%;
+    object-fit:cover; display:block;
+  }
+
+  /* Scanning overlay */
+  .scan-overlay {
+    position:absolute; inset:0;
+    display:flex; align-items:center; justify-content:center;
+    pointer-events:none;
+  }
+
+  .scan-box {
+    width:60%; aspect-ratio:1;
+    position:relative;
+  }
+
+  .scan-box::before, .scan-box::after,
+  .scan-box .c3, .scan-box .c4 {
+    content:'';
+    position:absolute;
+    width:24px; height:24px;
+    border-color:var(--accent); border-style:solid;
+  }
+
+  .scan-box::before { top:0; left:0; border-width:3px 0 0 3px; border-radius:4px 0 0 0; }
+  .scan-box::after  { top:0; right:0; border-width:3px 3px 0 0; border-radius:0 4px 0 0; }
+  .scan-box .c3     { bottom:0; left:0; border-width:0 0 3px 3px; border-radius:0 0 0 4px; }
+  .scan-box .c4     { bottom:0; right:0; border-width:0 3px 3px 0; border-radius:0 0 4px 0; }
+
+  .scan-line {
+    position:absolute;
+    left:20%; right:20%;
+    height:2px;
+    background:linear-gradient(90deg,transparent,var(--accent),transparent);
+    animation:scanAnim 2s linear infinite;
+    box-shadow:0 0 8px var(--accent);
+  }
+
+  @keyframes scanAnim {
+    0%   { top:20%; }
+    50%  { top:80%; }
+    100% { top:20%; }
+  }
+
+  .scanner-status {
+    position:absolute; bottom:12px; left:0; right:0;
+    text-align:center;
+    font-family:'Share Tech Mono',monospace;
+    font-size:11px; color:var(--accent);
+    letter-spacing:2px; text-transform:uppercase;
+    text-shadow:0 0 10px var(--accent);
+  }
+
+  /* Buttons */
+  .btn-primary {
+    background:linear-gradient(135deg,#0099bb,var(--accent));
+    border:none; border-radius:10px;
+    padding:14px 24px; color:#000;
+    font-family:'Rajdhani',sans-serif;
+    font-size:15px; font-weight:700;
+    letter-spacing:2px; text-transform:uppercase;
+    cursor:pointer; transition:all 0.2s;
+    width:100%; margin-top:10px;
+  }
+  .btn-primary:hover { transform:translateY(-2px); box-shadow:0 8px 25px rgba(0,212,255,0.3); }
+
+  .btn-secondary {
+    background:none; border:1px solid var(--border);
+    border-radius:10px; padding:10px 20px;
+    color:var(--muted); font-family:'Share Tech Mono',monospace;
+    font-size:12px; cursor:pointer; transition:all 0.2s;
+    width:100%; margin-top:8px; letter-spacing:1px;
+  }
+  .btn-secondary:hover { border-color:var(--accent); color:var(--accent); }
+
+  /* Manual input */
+  .manual-input {
+    background:var(--surface2); border:1px solid var(--border);
+    border-radius:8px; padding:12px 16px;
+    color:var(--text); font-family:'Share Tech Mono',monospace;
+    font-size:16px; outline:none; width:100%;
+    letter-spacing:4px; text-align:center; transition:border-color 0.2s;
+  }
+  .manual-input:focus { border-color:var(--accent); box-shadow:0 0 0 3px rgba(0,212,255,0.1); }
+
+  /* Result overlay */
+  .result-overlay {
+    display:flex;
+    position:fixed; inset:0; z-index:100;
+    align-items:center; justify-content:center;
+    padding:20px;
+    animation: fadeIn 0.3s ease;
+    opacity:0; pointer-events:none; transition: opacity 0.3s;
+  }
+  .result-overlay.show { opacity:1; pointer-events:all; }
+  .result-overlay.valid   { background:rgba(0,20,10,0.96); }
+  .result-overlay.invalid { background:rgba(20,0,5,0.96); }
+
+  .result-card {
+    background:var(--surface);
+    border-radius:20px; padding:32px 24px;
+    max-width:420px; width:100%;
+    text-align:center;
+    position:relative; overflow:hidden;
+    animation: popIn 0.4s cubic-bezier(0.34,1.56,0.64,1);
+  }
+
+  .result-card.valid  { border:2px solid var(--green); box-shadow:0 0 40px rgba(0,255,136,0.2); }
+  .result-card.invalid { border:2px solid var(--red);  box-shadow:0 0 40px rgba(255,56,96,0.2); }
+
+  .result-icon {
+    font-size:56px; margin-bottom:12px;
+    animation: bounce 0.5s ease 0.2s backwards;
+  }
+
+  .result-status {
+    font-family:'Rajdhani',sans-serif;
+    font-size:32px; font-weight:700;
+    letter-spacing:3px; margin-bottom:4px;
+  }
+  .valid  .result-status { color:var(--green); }
+  .invalid .result-status { color:var(--red); }
+
+  .result-sub {
+    font-size:12px; color:var(--muted);
+    font-family:'Share Tech Mono',monospace;
+    letter-spacing:2px; margin-bottom:24px;
+  }
+
+  .data-grid {
+    background:var(--surface2);
+    border-radius:12px; padding:16px;
+    text-align:left; margin-bottom:20px;
+  }
+
+  .data-row {
+    display:flex; justify-content:space-between;
+    align-items:center; padding:8px 0;
+    border-bottom:1px solid rgba(255,255,255,0.05);
+    font-family:'Share Tech Mono',monospace; font-size:12px;
+  }
+  .data-row:last-child { border-bottom:none; }
+  .data-row .key { color:var(--muted); letter-spacing:1px; }
+  .data-row .val { color:var(--text); font-weight:bold; }
+  .data-row .val.accent { color:var(--accent); }
+  .data-row .val.green  { color:var(--green); }
+  .data-row .val.red    { color:var(--red); }
+
+  .math-row {
+    background:rgba(0,212,255,0.04);
+    border:1px solid rgba(0,212,255,0.1);
+    border-left:3px solid var(--accent);
+    border-radius:6px; padding:10px 14px;
+    font-family:'Share Tech Mono',monospace;
+    font-size:11px; color:var(--muted);
+    line-height:1.8; text-align:left; margin-bottom:16px;
+  }
+  .math-row span.ok  { color:var(--green); font-weight:bold; }
+  .math-row span.err { color:var(--red); font-weight:bold; }
+  .math-row span.hl  { color:var(--accent); }
+
+  /* Speech bubble */
+  .speech-bubble {
+    position:fixed; bottom:30px; left:50%;
+    transform:translateX(-50%);
+    background:var(--surface2);
+    border:1px solid var(--border);
+    border-radius:50px; padding:10px 24px;
+    font-family:'Share Tech Mono',monospace;
+    font-size:12px; color:var(--accent);
+    letter-spacing:2px; text-transform:uppercase;
+    display:none; z-index:200;
+    animation: fadeUp 0.3s ease;
+  }
+
+  @keyframes fadeDown { from{opacity:0;transform:translateY(-20px)} to{opacity:1;transform:translateY(0)} }
+  @keyframes fadeUp   { from{opacity:0;transform:translateY(20px)}  to{opacity:1;transform:translateY(0)} }
+  @keyframes fadeIn   { from{opacity:0} to{opacity:1} }
+  @keyframes popIn    { from{opacity:0;transform:scale(0.5)} to{opacity:1;transform:scale(1)} }
+  @keyframes bounce   { 0%{transform:scale(0)} 60%{transform:scale(1.2)} 100%{transform:scale(1)} }
+
+  label {
+    font-family:'Share Tech Mono',monospace;
+    font-size:10px; color:var(--accent);
+    letter-spacing:2px; text-transform:uppercase;
+    display:block; margin-bottom:8px;
+  }
+
+  .tabs {
+    display:flex; gap:8px; margin-bottom:20px;
+  }
+  .tab {
+    flex:1; padding:10px;
+    border-radius:8px; border:1px solid var(--border);
+    background:none; color:var(--muted);
+    font-family:'Share Tech Mono',monospace;
+    font-size:11px; cursor:pointer;
+    transition:all 0.2s; letter-spacing:1px;
+  }
+  .tab.active {
+    background:rgba(0,212,255,0.1);
+    border-color:var(--accent); color:var(--accent);
+  }
+
+  .tab-content { display:none; }
+  .tab-content.active { display:block; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div class="logo-line">Universidad Mesoamericana · Quetzaltenango</div>
+    <h1>VERIFICADOR DE CARNÉ</h1>
+    <div class="divider"></div>
+    <div class="subtitle">Álgebra Lineal · Proyecto #2 · Ingeniería en Sistemas</div>
+  </header>
+
+  <!-- Vector de control -->
+  <div class="card">
+    <div class="card-title">Vector de Control</div>
+    <div class="vector-display" id="vectorDisplay">[ 1, 5, 1, 5, 1, 5, 1, 5, 1, 5, 1, 5 ]</div>
+    <button class="toggle-vector" onclick="toggleVector()">✎ Modificar vector de control</button>
+    <div class="vector-inputs" id="vectorInputs"></div>
+  </div>
+
+  <!-- Scanner / Manual -->
+  <div class="card">
+    <div class="card-title">Escanear o Ingresar Código</div>
+
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('camera')">📷 Cámara</button>
+      <button class="tab" onclick="switchTab('manual')">⌨ Manual</button>
+    </div>
+
+    <!-- Cámara -->
+    <div class="tab-content active" id="tab-camera">
+      <div class="scanner-container" id="scannerContainer">
+        <video id="video" playsinline muted autoplay></video>
+        <div class="scan-overlay">
+          <div class="scan-box">
+            <div class="c3"></div><div class="c4"></div>
+            <div class="scan-line"></div>
+          </div>
+        </div>
+        <div class="scanner-status" id="scannerStatus">LISTO PARA ESCANEAR</div>
+      </div>
+      <button class="btn-primary" onclick="startCamera()" id="btnCamera">📷 ACTIVAR CÁMARA</button>
+      <button class="btn-secondary" onclick="stopCamera()" id="btnStop" style="display:none">⏹ Detener cámara</button>
+    </div>
+
+    <!-- Manual -->
+    <div class="tab-content" id="tab-manual">
+      <label>Código de 12 dígitos</label>
+      <input type="text" class="manual-input" id="manualCode"
+             placeholder="000000000000" maxlength="12"
+             oninput="this.value=this.value.replace(/\D/g,'')">
+      <button class="btn-primary" onclick="verifyManual()">✔ VERIFICAR CÓDIGO</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- Resultado overlay -->
+<div class="result-overlay" id="resultOverlay">
+  <div class="result-card" id="resultCard">
+    <div class="result-icon" id="resultIcon"></div>
+    <div class="result-status" id="resultStatus"></div>
+    <div class="result-sub" id="resultSub"></div>
+    <div class="data-grid" id="dataGrid"></div>
+    <div class="math-row" id="mathRow"></div>
+    <button class="btn-primary" onclick="closeResult()">↺ ESCANEAR OTRO</button>
+  </div>
+</div>
+
+<!-- Speech bubble (verbal) -->
+<div class="speech-bubble" id="speechBubble"></div>
+
+<script>
+// ─── VECTOR DE CONTROL ─────────────────────────────────────────────────────
+let vectorControl = [1,5,1,5,1,5,1,5,1,5,1,5];
+
+const vi = document.getElementById('vectorInputs');
+for(let i=0;i<12;i++){
+  const inp = document.createElement('input');
+  inp.type='number'; inp.min=0; inp.max=9;
+  inp.value=vectorControl[i]; inp.id=`vc${i}`;
+  inp.addEventListener('input', updateVectorDisplay);
+  vi.appendChild(inp);
+}
+
+function toggleVector(){
+  document.getElementById('vectorInputs').classList.toggle('show');
+  updateVectorDisplay();
+}
+
+function updateVectorDisplay(){
+  for(let i=0;i<12;i++){
+    vectorControl[i]=parseInt(document.getElementById(`vc${i}`).value)||0;
+  }
+  document.getElementById('vectorDisplay').textContent='[ '+vectorControl.join(', ')+' ]';
+}
+
+// ─── TABS ───────────────────────────────────────────────────────────────────
+function switchTab(name){
+  document.querySelectorAll('.tab').forEach((t,i)=>{
+    t.classList.toggle('active', ['camera','manual'][i]===name);
+  });
+  document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  if(name!=='camera') stopCamera();
+}
+
+// ─── CÁMARA ─────────────────────────────────────────────────────────────────
+let stream=null, scanInterval=null, scanning=false;
+
+async function startCamera(){
+  try{
+    stream = await navigator.mediaDevices.getUserMedia({
+      video:{ facingMode:{ideal:'environment'}, width:{ideal:1280}, height:{ideal:720} }
+    });
+    const video = document.getElementById('video');
+    video.srcObject = stream;
+    await video.play();
+    document.getElementById('btnCamera').style.display='none';
+    document.getElementById('btnStop').style.display='block';
+    document.getElementById('scannerStatus').textContent='ESCANEANDO...';
+    scanning=true;
+    scanInterval = setInterval(scanFrame, 200);
+  }catch(e){
+    alert('No se pudo acceder a la cámara. Usa el modo manual o permite el permiso de cámara.');
+  }
+}
+
+function stopCamera(){
+  scanning=false;
+  clearInterval(scanInterval);
+  if(stream){ stream.getTracks().forEach(t=>t.stop()); stream=null; }
+  document.getElementById('btnCamera').style.display='block';
+  document.getElementById('btnStop').style.display='none';
+  document.getElementById('scannerStatus').textContent='LISTO PARA ESCANEAR';
+}
+
+function scanFrame(){
+  if(!scanning) return;
+  const video = document.getElementById('video');
+  if(video.readyState!==video.HAVE_ENOUGH_DATA) return;
+  const canvas=document.createElement('canvas');
+  canvas.width=video.videoWidth; canvas.height=video.videoHeight;
+  const ctx=canvas.getContext('2d');
+  ctx.drawImage(video,0,0);
+  const imgData=ctx.getImageData(0,0,canvas.width,canvas.height);
+  const code=jsQR(imgData.data,imgData.width,imgData.height,{inversionAttempts:'dontInvert'});
+  if(code && code.data){
+    stopCamera();
+    verifyCode(code.data.trim());
+  }
+}
+
+// ─── VERIFICACIÓN ───────────────────────────────────────────────────────────
+function verifyManual(){
+  const code=document.getElementById('manualCode').value.trim();
+  if(code.length!==12||!/^\d{12}$/.test(code)){
+    alert('Ingresa exactamente 12 dígitos numéricos.'); return;
+  }
+  verifyCode(code);
+}
+
+const CARRERAS={
+  '01':'Electrónica','02':'Sistemas','03':'Telecomunicaciones'
+};
+
+function verifyCode(code12str){
+  if(!/^\d{12}$/.test(code12str)){
+    showResult(false, code12str, 'Formato inválido — debe ser 12 dígitos numéricos', null);
+    return;
+  }
+
+  const digits = code12str.split('').map(Number);
+
+  // Extraer segmentos
+  const fecha   = code12str.slice(0,4);   // AAMM
+  const idCarr  = code12str.slice(4,6);   // 2 dígitos
+  const correl  = code12str.slice(6,11);  // 5 dígitos
+  const dvInput = digits[11];             // último dígito
+
+  // Calcular con los primeros 11 digitos (igual que el generador)
+  const digits11 = digits.slice(0,11);
+  let dot = 0;
+  for(let i=0;i<11;i++) dot += vectorControl[i]*digits11[i];
+  dot = dot % 16;
+
+  // h: indices 1,3,5,7,9 de los primeros 11, mayores que 4
+  let h = 0;
+  for(let i=1;i<11;i+=2){ if(digits11[i]>4) h++; }
+
+  // Calcular DV esperado igual que el generador
+  const target = ((-dot - h) % 16 + 16) % 16;
+  const c12 = vectorControl[11];
+  let dvEsperado = -1;
+  for(let d=0;d<=9;d++){
+    if((c12*d)%16 === target){ dvEsperado=d; break; }
+  }
+  if(dvEsperado === -1) dvEsperado = target % 10;
+
+  const valid = (dvInput === dvEsperado);
+  const check = valid ? 0 : 1;
+
+  const carreraName = CARRERAS[idCarr] || `Código ${idCarr}`;
+
+  const detail = {
+    fecha, idCarr, correl, dvInput,
+    carreraName, dot, h, check, valid, code12str
+  };
+
+  showResult(valid, code12str, valid ? 'CÓDIGO VÁLIDO' : 'CÓDIGO INVÁLIDO', detail);
+}
+
+function showResult(valid, code, statusText, detail){
+  const overlay = document.getElementById('resultOverlay');
+  const card    = document.getElementById('resultCard');
+  const icon    = document.getElementById('resultIcon');
+  const status  = document.getElementById('resultStatus');
+  const sub     = document.getElementById('resultSub');
+  const grid    = document.getElementById('dataGrid');
+  const mathRow = document.getElementById('mathRow');
+
+  overlay.className='result-overlay show '+(valid?'valid':'invalid');
+  card.className='result-card '+(valid?'valid':'invalid');
+  icon.textContent = valid ? '✅' : '❌';
+  status.textContent = valid ? '✔ VÁLIDO' : '✗ INVÁLIDO';
+  sub.textContent = valid ? 'El código supera la verificación algebraica en Z₁₆'
+                           : 'El código NO cumple la condición c·x + h = 0 en Z₁₆';
+
+  if(detail){
+    const aa = '20'+detail.fecha.slice(0,2);
+    const mm = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'][parseInt(detail.fecha.slice(2,4))-1]||detail.fecha.slice(2,4);
+
+    grid.innerHTML=`
+      <div class="data-row"><span class="key">CÓDIGO</span><span class="val accent">${detail.code12str}</span></div>
+      <div class="data-row"><span class="key">CARRERA</span><span class="val">${detail.carreraName} (${detail.idCarr})</span></div>
+      <div class="data-row"><span class="key">CORRELATIVO</span><span class="val">${detail.correl}</span></div>
+      <div class="data-row"><span class="key">FECHA GEN.</span><span class="val">${mm} ${aa}</span></div>
+      <div class="data-row"><span class="key">DÍG. VERIFICADOR</span><span class="val">${detail.dvInput}</span></div>
+      <div class="data-row"><span class="key">ESTADO</span><span class="val ${valid?'green':'red'}">${valid?'VÁLIDO ✔':'INVÁLIDO ✗'}</span></div>
+    `;
+
+    const cStr=vectorControl.map((c,i)=>`${c}·${detail.code12str[i]}`).join('+');
+    mathRow.innerHTML=
+      `<span class="hl">Vector c:</span> [${vectorControl.join(', ')}]<br>
+       <span class="hl">c·x mod 16:</span> ${detail.dot}<br>
+       <span class="hl">h (pares > 4):</span> ${detail.h}<br>
+       <span class="hl">c·x + h mod 16:</span> ${detail.check} ${valid
+         ? '<span class="ok">= 0 ✔ VÁLIDO</span>'
+         : '<span class="err">≠ 0 ✗ INVÁLIDO</span>'}`;
+  } else {
+    grid.innerHTML=`<div class="data-row"><span class="key">CÓDIGO</span><span class="val red">${code}</span></div>`;
+    mathRow.innerHTML=`<span class="err">Formato inválido</span>`;
+  }
+
+  // Feedback verbal (síntesis de voz)
+  speakResult(valid);
+
+  // Mostrar speech bubble
+  const bubble=document.getElementById('speechBubble');
+  bubble.textContent=valid?'✔ CÓDIGO VÁLIDO':'✗ CÓDIGO INVÁLIDO';
+  bubble.style.background=valid?'rgba(0,40,20,0.95)':'rgba(40,0,10,0.95)';
+  bubble.style.borderColor=valid?'var(--green)':'var(--red)';
+  bubble.style.color=valid?'var(--green)':'var(--red)';
+  bubble.style.display='block';
+  setTimeout(()=>bubble.style.display='none', 4000);
+}
+
+function speakResult(valid){
+  if(!('speechSynthesis' in window)) return;
+  const msg=new SpeechSynthesisUtterance(
+    valid ? 'Código válido. El carné es auténtico.'
+          : 'Código inválido. El carné no es válido.'
+  );
+  msg.lang='es-ES'; msg.rate=0.9; msg.pitch=1;
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(msg);
+}
+
+function closeResult(){
+  document.getElementById('resultOverlay').classList.remove('show');
+  document.getElementById('manualCode').value='';
+  window.speechSynthesis && window.speechSynthesis.cancel();
+}
+</script>
+</body>
+</html>
