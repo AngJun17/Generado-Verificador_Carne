@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Verificador de Carné — UMES</title>
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=Share+Tech+Mono&family=Exo+2:wght@300;400;600;800&display=swap" rel="stylesheet">
+<!-- BarcodeDetector nativo del navegador, no necesita libreria externa -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
 <style>
 :root{--bg:#0a0e1a;--surface:#111827;--surface2:#1a2235;--accent:#00d4ff;--green:#00ff88;--red:#ff3860;--text:#e2e8f0;--muted:#64748b;--border:#1e3a5f}
@@ -186,33 +187,48 @@ function switchTab(name){
 function handlePhoto(e){
   var file = e.target.files[0];
   if(!file) return;
-  var reader = new FileReader();
-  reader.onload = function(ev){
-    var img = new Image();
-    img.onload = function(){
-      var canvas = document.getElementById('photoCanvas');
-      // Escalar a max 1024 para mejor procesamiento
-      var maxW = 1024;
-      var scale = img.width > maxW ? maxW/img.width : 1;
-      canvas.width  = img.width  * scale;
-      canvas.height = img.height * scale;
-      var ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      canvas.style.display = 'block';
 
-      var found = false;
-      var opts = ['attemptBoth','dontInvert','onlyInvert'];
-      for(var o=0; o<opts.length; o++){
-        var imgData = ctx.getImageData(0,0,canvas.width,canvas.height);
-        var qr = jsQR(imgData.data, imgData.width, imgData.height, {inversionAttempts: opts[o]});
-        if(qr && qr.data){ found=true; verifyCode(qr.data.trim()); break; }
-      }
-      if(!found) alert('No se detectó QR. Intenta con mejor luz o más cerca.');
-    };
-    img.src = ev.target.result;
+  var canvas = document.getElementById('photoCanvas');
+  var ctx = canvas.getContext('2d');
+
+  var img = new Image();
+  img.onload = function(){
+    var maxW = 1200;
+    var scale = img.width > maxW ? maxW/img.width : 1;
+    canvas.width  = img.width  * scale;
+    canvas.height = img.height * scale;
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    canvas.style.display = 'block';
+
+    // Método 1: BarcodeDetector nativo (Chrome Android, Edge)
+    if('BarcodeDetector' in window){
+      var bd = new BarcodeDetector({formats:['qr_code']});
+      bd.detect(canvas).then(function(codes){
+        if(codes.length > 0){
+          verifyCode(codes[0].rawValue.trim());
+        } else {
+          alert('No se detectó QR. Intenta con mejor iluminación o más cerca.');
+        }
+      }).catch(function(){ tryJsQR(ctx, canvas); });
+    } else {
+      tryJsQR(ctx, canvas);
+    }
   };
-  reader.readAsDataURL(file);
+  img.src = URL.createObjectURL(file);
   e.target.value='';
+}
+
+function tryJsQR(ctx, canvas){
+  // Fallback: intentar con jsQR si está disponible
+  if(typeof jsQR !== 'undefined'){
+    var imgData = ctx.getImageData(0,0,canvas.width,canvas.height);
+    var opts = ['attemptBoth','dontInvert','onlyInvert'];
+    for(var o=0;o<opts.length;o++){
+      var qr = jsQR(imgData.data,imgData.width,imgData.height,{inversionAttempts:opts[o]});
+      if(qr && qr.data){ verifyCode(qr.data.trim()); return; }
+    }
+  }
+  alert('No se detectó QR. Intenta con mejor iluminación, más cerca, o usa el modo Manual.');
 }
 
 // ── TAB VIDEO ──
@@ -241,15 +257,22 @@ function scanFrame(){
   if(!scanning) return;
   var v=document.getElementById('video');
   if(v.readyState!==v.HAVE_ENOUGH_DATA) return;
-  var c=document.createElement('canvas');
-  c.width=v.videoWidth; c.height=v.videoHeight;
-  var ctx=c.getContext('2d');
-  ctx.drawImage(v,0,0);
-  var opts=['attemptBoth','dontInvert','onlyInvert'];
-  for(var o=0;o<opts.length;o++){
-    var id=ctx.getImageData(0,0,c.width,c.height);
-    var qr=jsQR(id.data,id.width,id.height,{inversionAttempts:opts[o]});
-    if(qr && qr.data){ stopVideo(); verifyCode(qr.data.trim()); return; }
+
+  if('BarcodeDetector' in window){
+    var bd = new BarcodeDetector({formats:['qr_code']});
+    bd.detect(v).then(function(codes){
+      if(codes.length>0 && scanning){ stopVideo(); verifyCode(codes[0].rawValue.trim()); }
+    }).catch(function(){});
+  } else if(typeof jsQR !== 'undefined'){
+    var c=document.createElement('canvas');
+    c.width=v.videoWidth; c.height=v.videoHeight;
+    var ctx=c.getContext('2d'); ctx.drawImage(v,0,0);
+    var opts=['attemptBoth','dontInvert','onlyInvert'];
+    for(var o=0;o<opts.length;o++){
+      var id=ctx.getImageData(0,0,c.width,c.height);
+      var qr=jsQR(id.data,id.width,id.height,{inversionAttempts:opts[o]});
+      if(qr && qr.data){ stopVideo(); verifyCode(qr.data.trim()); return; }
+    }
   }
 }
 
