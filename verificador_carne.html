@@ -488,10 +488,28 @@ function scanFrame(){
   const ctx=canvas.getContext('2d');
   ctx.drawImage(video,0,0);
   const imgData=ctx.getImageData(0,0,canvas.width,canvas.height);
-  const code=jsQR(imgData.data,imgData.width,imgData.height,{inversionAttempts:'dontInvert'});
-  if(code && code.data){
+  
+  // Intentar con todas las opciones de inversion
+  const attempts = ['dontInvert','onlyInvert','attemptBoth'];
+  for(const attempt of attempts){
+    const code=jsQR(imgData.data,imgData.width,imgData.height,{inversionAttempts:attempt});
+    if(code && code.data){
+      stopCamera();
+      verifyCode(code.data.trim());
+      return;
+    }
+  }
+  
+  // Si no funciona con resolucion completa, intentar con resolucion reducida
+  const small=document.createElement('canvas');
+  small.width=640; small.height=480;
+  const sctx=small.getContext('2d');
+  sctx.drawImage(video,0,0,640,480);
+  const smallData=sctx.getImageData(0,0,640,480);
+  const code2=jsQR(smallData.data,smallData.width,smallData.height,{inversionAttempts:'attemptBoth'});
+  if(code2 && code2.data){
     stopCamera();
-    verifyCode(code.data.trim());
+    verifyCode(code2.data.trim());
   }
 }
 
@@ -505,7 +523,7 @@ function verifyManual(){
 }
 
 const CARRERAS={
-  '01':'Electrónica','02':'Sistemas','03':'Telecomunicaciones'
+  '07':'Electrónica','08':'Sistemas','14':'Telecomunicaciones'
 };
 
 function verifyCode(code12str){
