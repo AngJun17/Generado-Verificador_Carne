@@ -4,520 +4,67 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Generador de Carné — UMES</title>
-<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&family=Exo+2:wght@300;400;600;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=Share+Tech+Mono&family=Exo+2:wght@300;400;600;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <style>
-  :root {
-    --bg: #0a0e1a;
-    --surface: #111827;
-    --surface2: #1a2235;
-    --accent: #00d4ff;
-    --accent2: #0099bb;
-    --green: #00ff88;
-    --red: #ff3860;
-    --text: #e2e8f0;
-    --muted: #64748b;
-    --border: #1e3a5f;
-  }
-
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'Exo 2', sans-serif;
-    min-height: 100vh;
-    background-image:
-      radial-gradient(ellipse at 20% 50%, rgba(0,212,255,0.04) 0%, transparent 50%),
-      radial-gradient(ellipse at 80% 20%, rgba(0,153,187,0.06) 0%, transparent 40%),
-      linear-gradient(180deg, #0a0e1a 0%, #070b14 100%);
-  }
-
-  /* Grid overlay */
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background-image:
-      linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
-    background-size: 40px 40px;
-    pointer-events: none;
-    z-index: 0;
-  }
-
-  .container {
-    position: relative;
-    z-index: 1;
-    max-width: 900px;
-    margin: 0 auto;
-    padding: 30px 20px;
-  }
-
-  /* Header */
-  header {
-    text-align: center;
-    margin-bottom: 40px;
-    animation: fadeDown 0.6s ease;
-  }
-
-  .logo-line {
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 11px;
-    color: var(--accent);
-    letter-spacing: 4px;
-    text-transform: uppercase;
-    margin-bottom: 8px;
-    opacity: 0.8;
-  }
-
-  h1 {
-    font-family: 'Rajdhani', sans-serif;
-    font-size: clamp(28px, 5vw, 48px);
-    font-weight: 700;
-    letter-spacing: 2px;
-    background: linear-gradient(135deg, #fff 30%, var(--accent) 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    line-height: 1.1;
-  }
-
-  .subtitle {
-    font-size: 13px;
-    color: var(--muted);
-    margin-top: 8px;
-    letter-spacing: 1px;
-  }
-
-  /* Divider */
-  .divider {
-    width: 60px;
-    height: 2px;
-    background: linear-gradient(90deg, transparent, var(--accent), transparent);
-    margin: 16px auto;
-  }
-
-  /* Main card */
-  .card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 32px;
-    margin-bottom: 24px;
-    position: relative;
-    overflow: hidden;
-    animation: fadeUp 0.5s ease;
-  }
-
-  .card::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 2px;
-    background: linear-gradient(90deg, transparent, var(--accent), transparent);
-  }
-
-  .card-title {
-    font-family: 'Rajdhani', sans-serif;
-    font-size: 16px;
-    font-weight: 600;
-    color: var(--accent);
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    margin-bottom: 24px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-
-  .card-title::before {
-    content: '▶';
-    font-size: 10px;
-  }
-
-  /* Form grid */
-  .form-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-  }
-
-  @media (max-width: 600px) {
-    .form-grid { grid-template-columns: 1fr; }
-  }
-
-  .field {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  .field.full { grid-column: 1 / -1; }
-
-  label {
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 11px;
-    color: var(--accent);
-    letter-spacing: 2px;
-    text-transform: uppercase;
-  }
-
-  input, select {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 12px 16px;
-    color: var(--text);
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 14px;
-    outline: none;
-    transition: border-color 0.2s, box-shadow 0.2s;
-    width: 100%;
-    appearance: none;
-  }
-
-  input:focus, select:focus {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(0,212,255,0.1);
-  }
-
-  select option { background: var(--surface2); }
-
-  /* Vector control */
-  .vector-display {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 12px 16px;
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 14px;
-    color: var(--accent);
-    letter-spacing: 2px;
-  }
-
-  .vector-inputs {
-    display: none;
-    grid-template-columns: repeat(12, 1fr);
-    gap: 6px;
-    margin-top: 10px;
-  }
-
-  .vector-inputs.show { display: grid; }
-
-  .vector-inputs input {
-    padding: 8px 4px;
-    text-align: center;
-    font-size: 13px;
-  }
-
-  .toggle-vector {
-    background: none;
-    border: 1px solid var(--border);
-    color: var(--muted);
-    padding: 6px 14px;
-    border-radius: 6px;
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 11px;
-    cursor: pointer;
-    transition: all 0.2s;
-    margin-top: 8px;
-    letter-spacing: 1px;
-  }
-
-  .toggle-vector:hover {
-    border-color: var(--accent);
-    color: var(--accent);
-  }
-
-  /* Buttons */
-  .btn-primary {
-    background: linear-gradient(135deg, var(--accent2), var(--accent));
-    border: none;
-    border-radius: 10px;
-    padding: 14px 32px;
-    color: #000;
-    font-family: 'Rajdhani', sans-serif;
-    font-size: 16px;
-    font-weight: 700;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    cursor: pointer;
-    transition: all 0.2s;
-    width: 100%;
-    margin-top: 8px;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .btn-primary::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(135deg, rgba(255,255,255,0.2), transparent);
-    opacity: 0;
-    transition: opacity 0.2s;
-  }
-
-  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,212,255,0.3); }
-  .btn-primary:hover::after { opacity: 1; }
-  .btn-primary:active { transform: translateY(0); }
-
-  .btn-secondary {
-    background: none;
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 10px 20px;
-    color: var(--muted);
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 12px;
-    cursor: pointer;
-    transition: all 0.2s;
-    letter-spacing: 1px;
-  }
-
-  .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
-
-  /* Result section */
-  .result-section {
-    display: none;
-    animation: fadeUp 0.4s ease;
-  }
-
-  .result-section.show { display: block; }
-
-  /* Code display */
-  .code-display {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 24px;
-    margin-bottom: 20px;
-    position: relative;
-  }
-
-  .code-label {
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 10px;
-    color: var(--muted);
-    letter-spacing: 2px;
-    margin-bottom: 12px;
-    text-transform: uppercase;
-  }
-
-  .code-number {
-    font-family: 'Share Tech Mono', monospace;
-    font-size: clamp(22px, 4vw, 36px);
-    color: var(--accent);
-    letter-spacing: 6px;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-    align-items: center;
-  }
-
-  .digit-block {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 40px;
-    height: 50px;
-    background: rgba(0,212,255,0.05);
-    border: 1px solid rgba(0,212,255,0.15);
-    border-radius: 6px;
-    font-size: 20px;
-    transition: all 0.3s;
-    animation: popIn 0.3s ease backwards;
-  }
-
-  .digit-block.verify {
-    background: rgba(0,255,136,0.08);
-    border-color: rgba(0,255,136,0.3);
-    color: var(--green);
-  }
-
-  .digit-sep {
-    width: 6px;
-    height: 2px;
-    background: var(--border);
-    margin: 0 2px;
-  }
-
-  /* Code breakdown */
-  .breakdown {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 12px;
-    margin-top: 20px;
-  }
-
-  @media (max-width: 500px) {
-    .breakdown { grid-template-columns: 1fr 1fr; }
-  }
-
-  .breakdown-item {
-    background: rgba(0,212,255,0.04);
-    border: 1px solid rgba(0,212,255,0.1);
-    border-radius: 8px;
-    padding: 12px;
-    text-align: center;
-  }
-
-  .breakdown-item .val {
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 18px;
-    color: var(--accent);
-    letter-spacing: 3px;
-  }
-
-  .breakdown-item .lbl {
-    font-size: 10px;
-    color: var(--muted);
-    margin-top: 4px;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-  }
-
-  /* QR container */
-  .qr-wrapper {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 16px;
-    padding: 24px;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-  }
-
-  .qr-frame {
-    position: relative;
-    padding: 16px;
-    background: #fff;
-    border-radius: 8px;
-  }
-
-  .qr-frame::before, .qr-frame::after {
-    content: '';
-    position: absolute;
-    width: 20px; height: 20px;
-    border-color: var(--accent);
-    border-style: solid;
-  }
-
-  .qr-frame::before { top: -3px; left: -3px; border-width: 3px 0 0 3px; border-radius: 3px 0 0 0; }
-  .qr-frame::after  { bottom: -3px; right: -3px; border-width: 0 3px 3px 0; border-radius: 0 0 3px 0; }
-
-  #qrcode { display: block; }
-
-  .qr-label {
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 11px;
-    color: var(--muted);
-    letter-spacing: 2px;
-    text-align: center;
-    text-transform: uppercase;
-  }
-
-  /* Math detail */
-  .math-detail {
-    background: rgba(0,212,255,0.03);
-    border: 1px solid rgba(0,212,255,0.1);
-    border-left: 3px solid var(--accent);
-    border-radius: 8px;
-    padding: 16px 20px;
-    margin-top: 16px;
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 12px;
-    color: var(--muted);
-    line-height: 1.8;
-  }
-
-  .math-detail span { color: var(--accent); }
-  .math-detail .result-ok { color: var(--green); font-weight: bold; }
-
-  /* Layout cols */
-  .two-cols {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-    align-items: start;
-  }
-
-  @media (max-width: 650px) {
-    .two-cols { grid-template-columns: 1fr; }
-  }
-
-  /* Download btn */
-  .btn-download {
-    background: none;
-    border: 1px solid var(--green);
-    color: var(--green);
-    border-radius: 8px;
-    padding: 10px 20px;
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 12px;
-    cursor: pointer;
-    transition: all 0.2s;
-    letter-spacing: 1px;
-    width: 100%;
-    margin-top: 12px;
-  }
-
-  .btn-download:hover {
-    background: rgba(0,255,136,0.08);
-    box-shadow: 0 0 15px rgba(0,255,136,0.15);
-  }
-
-  /* Animations */
-  @keyframes fadeDown {
-    from { opacity: 0; transform: translateY(-20px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-
-  @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(20px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-
-  @keyframes popIn {
-    from { opacity: 0; transform: scale(0.5); }
-    to   { opacity: 1; transform: scale(1); }
-  }
-
-  /* Valid indicator */
-  .valid-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 20px;
-    border-radius: 50px;
-    font-family: 'Rajdhani', sans-serif;
-    font-size: 15px;
-    font-weight: 600;
-    letter-spacing: 2px;
-    margin-top: 12px;
-  }
-
-  .valid-badge.ok {
-    background: rgba(0,255,136,0.1);
-    border: 1px solid var(--green);
-    color: var(--green);
-  }
-
-  .scanner-hint {
-    font-size: 12px;
-    color: var(--muted);
-    text-align: center;
-    margin-top: 20px;
-    font-family: 'Share Tech Mono', monospace;
-    letter-spacing: 1px;
-  }
+:root{--bg:#0a0e1a;--surface:#111827;--surface2:#1a2235;--accent:#00d4ff;--green:#00ff88;--text:#e2e8f0;--muted:#64748b;--border:#1e3a5f}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:'Exo 2',sans-serif;min-height:100vh;background-image:radial-gradient(ellipse at 20% 50%,rgba(0,212,255,.04) 0%,transparent 50%)}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,212,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,212,255,.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0}
+.container{position:relative;z-index:1;max-width:860px;margin:0 auto;padding:24px 16px}
+header{text-align:center;margin-bottom:32px}
+.logo-line{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--accent);letter-spacing:4px;text-transform:uppercase;margin-bottom:6px}
+h1{font-family:'Rajdhani',sans-serif;font-size:clamp(26px,5vw,44px);font-weight:700;letter-spacing:2px;background:linear-gradient(135deg,#fff 30%,var(--accent) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.subtitle{font-size:12px;color:var(--muted);margin-top:6px;letter-spacing:1px}
+.divider{width:50px;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);margin:12px auto}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px;margin-bottom:20px;position:relative;overflow:hidden}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent)}
+.card-title{font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:600;color:var(--accent);letter-spacing:3px;text-transform:uppercase;margin-bottom:18px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:560px){.form-grid{grid-template-columns:1fr}}
+.field{display:flex;flex-direction:column;gap:6px}
+.field.full{grid-column:1/-1}
+label{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--accent);letter-spacing:2px;text-transform:uppercase}
+input,select{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:11px 14px;color:var(--text);font-family:'Share Tech Mono',monospace;font-size:14px;outline:none;transition:border-color .2s;width:100%;-webkit-appearance:none}
+input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,212,255,.1)}
+select option{background:var(--surface2)}
+.vector-display{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:11px 14px;font-family:'Share Tech Mono',monospace;font-size:13px;color:var(--accent);letter-spacing:2px}
+.vector-inputs{display:none;grid-template-columns:repeat(12,1fr);gap:5px;margin-top:8px}
+.vector-inputs.show{display:grid}
+.vector-inputs input{padding:8px 2px;text-align:center;font-size:12px}
+.toggle-btn{background:none;border:1px solid var(--border);color:var(--muted);padding:5px 12px;border-radius:6px;font-family:'Share Tech Mono',monospace;font-size:10px;cursor:pointer;transition:all .2s;margin-top:8px;letter-spacing:1px}
+.toggle-btn:hover{border-color:var(--accent);color:var(--accent)}
+.btn-primary{background:linear-gradient(135deg,#0099bb,var(--accent));border:none;border-radius:10px;padding:14px 24px;color:#000;font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:all .2s;width:100%;margin-top:10px}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 25px rgba(0,212,255,.3)}
+.btn-secondary{background:none;border:1px solid var(--border);border-radius:10px;padding:10px 20px;color:var(--muted);font-family:'Share Tech Mono',monospace;font-size:12px;cursor:pointer;transition:all .2s;width:100%;margin-top:8px;letter-spacing:1px}
+.btn-secondary:hover{border-color:var(--accent);color:var(--accent)}
+.result-section{display:none}
+.result-section.show{display:block}
+.code-display{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:16px}
+.code-label{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:2px;margin-bottom:10px;text-transform:uppercase}
+.code-number{font-family:'Share Tech Mono',monospace;font-size:clamp(18px,4vw,30px);color:var(--accent);letter-spacing:5px;word-break:break-all}
+.breakdown{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:16px}
+@media(max-width:480px){.breakdown{grid-template-columns:1fr 1fr}}
+.breakdown-item{background:rgba(0,212,255,.04);border:1px solid rgba(0,212,255,.1);border-radius:8px;padding:10px;text-align:center}
+.breakdown-item .val{font-family:'Share Tech Mono',monospace;font-size:16px;color:var(--accent);letter-spacing:3px}
+.breakdown-item .lbl{font-size:10px;color:var(--muted);margin-top:3px;letter-spacing:1px;text-transform:uppercase}
+.two-cols{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
+@media(max-width:600px){.two-cols{grid-template-columns:1fr}}
+.qr-wrapper{display:flex;flex-direction:column;align-items:center;gap:12px;padding:20px;background:var(--surface2);border:1px solid var(--border);border-radius:10px}
+.qr-frame{padding:12px;background:#fff;border-radius:6px;display:inline-block}
+.qr-label{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:2px;text-align:center;text-transform:uppercase}
+.valid-badge{display:inline-flex;align-items:center;gap:8px;padding:7px 18px;border-radius:50px;font-family:'Rajdhani',sans-serif;font-size:14px;font-weight:600;letter-spacing:2px;background:rgba(0,255,136,.1);border:1px solid var(--green);color:var(--green)}
+.math-detail{background:rgba(0,212,255,.03);border:1px solid rgba(0,212,255,.1);border-left:3px solid var(--accent);border-radius:8px;padding:14px 16px;margin-top:14px;font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--muted);line-height:1.9}
+.math-detail span{color:var(--accent)}
+.math-detail .ok{color:var(--green);font-weight:bold}
+.btn-download{background:none;border:1px solid var(--green);color:var(--green);border-radius:8px;padding:9px 18px;font-family:'Share Tech Mono',monospace;font-size:11px;cursor:pointer;transition:all .2s;width:100%;margin-top:10px;letter-spacing:1px}
+.btn-download:hover{background:rgba(0,255,136,.08)}
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.anim{animation:fadeUp .4s ease}
 </style>
 </head>
 <body>
 <div class="container">
-
   <header>
     <div class="logo-line">Universidad Mesoamericana · Quetzaltenango</div>
     <h1>GENERADOR DE CARNÉ</h1>
@@ -525,10 +72,8 @@
     <div class="subtitle">Álgebra Lineal · Proyecto #2 · Ingeniería en Sistemas</div>
   </header>
 
-  <!-- Formulario -->
   <div class="card">
-    <div class="card-title">Datos del estudiante</div>
-
+    <div class="card-title">▶ Datos del Estudiante</div>
     <div class="form-grid">
       <div class="field">
         <label>Carrera</label>
@@ -538,234 +83,159 @@
           <option value="03">Telecomunicaciones (03)</option>
         </select>
       </div>
-
       <div class="field">
         <label>Correlativo (últimos 5 dígitos del carné)</label>
-        <input type="text" id="correlativo" placeholder="Ej: 08067" maxlength="5" value="08067">
+        <input type="text" id="correlativo" placeholder="08067" maxlength="5" inputmode="numeric">
       </div>
-
       <div class="field full">
         <label>Vector de Control</label>
         <div class="vector-display" id="vectorDisplay">[ 1, 5, 1, 5, 1, 5, 1, 5, 1, 5, 1, 5 ]</div>
-        <button class="toggle-vector" onclick="toggleVector()">✎ Modificar vector de control</button>
-        <div class="vector-inputs" id="vectorInputs">
-          <!-- 12 inputs generados por JS -->
-        </div>
+        <button class="toggle-btn" onclick="toggleVector()">✎ Modificar vector de control</button>
+        <div class="vector-inputs" id="vectorInputs"></div>
       </div>
     </div>
-
-    <button class="btn-primary" onclick="generarCodigo()">⬡ GENERAR CÓDIGO</button>
+    <button class="btn-primary" id="btnGenerar" onclick="generarCodigo()">⬡ GENERAR CÓDIGO</button>
   </div>
 
-  <!-- Resultado -->
   <div class="result-section" id="resultSection">
-
-    <div class="card">
-      <div class="card-title">Vector Código Generado</div>
-
+    <div class="card anim">
+      <div class="card-title">▶ Código Generado</div>
       <div class="code-display">
         <div class="code-label">Código de 12 dígitos</div>
-        <div class="code-number" id="codeDigits"></div>
+        <div class="code-number" id="codeNumber"></div>
         <div class="breakdown" id="breakdown"></div>
         <div class="math-detail" id="mathDetail"></div>
       </div>
-
       <div class="two-cols">
         <div class="qr-wrapper">
-          <div class="qr-frame">
-            <div id="qrcode"></div>
-          </div>
-          <div class="qr-label">Código QR — Escanear con verificador</div>
-          <div class="valid-badge ok">✔ CÓDIGO VÁLIDO</div>
+          <div class="qr-frame"><div id="qrcode"></div></div>
+          <div class="qr-label">Escanear con verificador</div>
+          <div class="valid-badge">✔ CÓDIGO VÁLIDO</div>
           <button class="btn-download" onclick="downloadQR()">⬇ Descargar QR</button>
         </div>
-
         <div>
           <div class="code-display">
-            <div class="code-label">Datos codificados</div>
-            <div id="dataDetail" style="font-family:'Share Tech Mono',monospace;font-size:13px;line-height:2;color:var(--muted)"></div>
+            <div class="code-label">Resumen</div>
+            <div id="resumen" style="font-family:'Share Tech Mono',monospace;font-size:12px;line-height:2;color:var(--muted)"></div>
           </div>
-          <button class="btn-secondary" onclick="resetForm()" style="width:100%;margin-top:12px">↺ Generar otro código</button>
+          <button class="btn-secondary" onclick="resetForm()">↺ Generar otro</button>
         </div>
       </div>
-
-      <div class="scanner-hint">
-        💡 Para verificar: escanea el QR con la aplicación verificadora o con tu cámara
-      </div>
     </div>
-
   </div>
-
 </div>
 
 <script>
-// ─── VECTOR DE CONTROL ─────────────────────────────────────────────────────
-let vectorControl = [1,5,1,5,1,5,1,5,1,5,1,5];
+var vectorControl = [1,5,1,5,1,5,1,5,1,5,1,5];
 
 // Generar inputs del vector
-const vi = document.getElementById('vectorInputs');
-for(let i=0;i<12;i++){
-  const inp = document.createElement('input');
+var vi = document.getElementById('vectorInputs');
+for(var i=0;i<12;i++){
+  var inp = document.createElement('input');
   inp.type='number'; inp.min=0; inp.max=9;
-  inp.value = vectorControl[i];
-  inp.id = `vc${i}`;
-  inp.addEventListener('input', updateVectorDisplay);
+  inp.value=vectorControl[i]; inp.id='vc'+i;
+  inp.addEventListener('input', updateVector);
   vi.appendChild(inp);
 }
 
 function toggleVector(){
-  const d = document.getElementById('vectorInputs');
-  d.classList.toggle('show');
-  updateVectorDisplay();
+  document.getElementById('vectorInputs').classList.toggle('show');
 }
 
-function updateVectorDisplay(){
-  for(let i=0;i<12;i++){
-    const v = parseInt(document.getElementById(`vc${i}`).value)||0;
-    vectorControl[i] = v;
+function updateVector(){
+  for(var i=0;i<12;i++){
+    vectorControl[i] = parseInt(document.getElementById('vc'+i).value)||0;
   }
-  document.getElementById('vectorDisplay').textContent =
-    '[ ' + vectorControl.join(', ') + ' ]';
+  document.getElementById('vectorDisplay').textContent = '[ '+vectorControl.join(', ')+' ]';
 }
-
-// ─── LÓGICA PRINCIPAL ───────────────────────────────────────────────────────
 
 function getFecha(){
-  const now = new Date();
-  const yy = String(now.getFullYear()).slice(-2);
-  const mm = String(now.getMonth()+1).padStart(2,'0');
-  return yy + mm;  // 4 dígitos: AAMM
+  var now = new Date();
+  var yy = String(now.getFullYear()).slice(-2);
+  var mm = String(now.getMonth()+1).padStart(2,'0');
+  return yy+mm;
 }
 
-function calcDigitoVerificador(digits12sin){
-  // digits12sin: array de 11 dígitos (sin el verificador)
-  // c · x en Z16, donde x son los 11 dígitos y c = primeros 11 del vector de control
-  // h = conteo de dígitos en posiciones pares (índice 1,3,5...) que son > 4
-  // Condición: (dot + h) mod 16 == 0  =>  dv = (-dot - h) mod 16
-  // Nota: posiciones pares = índices 1,3,5,7,9 (base 0) → posiciones 2,4,6,8,10 (base 1)
-
-  const c = vectorControl.slice(0,11);
-
-  let dot = 0;
-  for(let i=0;i<11;i++) dot += c[i]*digits12sin[i];
-  dot = dot % 16;
-
-  // h: dígitos en posiciones pares (base 1: pos 2,4,6,8,10 → índice 1,3,5,7,9) mayores que 4
-  let h = 0;
-  for(let i=1;i<11;i+=2){ // índices 1,3,5,7,9
-    if(digits12sin[i] > 4) h++;
+function calcDV(d11){
+  var dot=0;
+  for(var i=0;i<11;i++) dot += vectorControl[i]*d11[i];
+  dot = dot%16;
+  var h=0;
+  for(var i=1;i<11;i+=2) if(d11[i]>4) h++;
+  var target = ((-dot-h)%16+16)%16;
+  var c12 = vectorControl[11];
+  var dv=-1;
+  for(var d=0;d<=9;d++){
+    if((c12*d)%16===target){ dv=d; break; }
   }
-
-  // c·x + h = 0 mod 16  con x incluyendo dv en posición 12
-  // c[11]*dv = (-dot - h) mod 16
-  const target = ((-dot - h) % 16 + 16) % 16;
-  const c12 = vectorControl[11]; // coeficiente para el dígito verificador
-
-  // Buscar dv en 0..9 tal que c12*dv ≡ target (mod 16)
-  // Si c12=5 e.g.: 5*0=0,5*1=5,5*2=10,5*3=15,5*4=4,5*5=9,5*6=14,5*7=3,5*8=8,5*9=13
-  let dv = -1;
-  for(let d=0;d<=9;d++){
-    if((c12*d)%16 === target){ dv=d; break; }
-  }
-  if(dv===-1){
-    // Si no hay solución exacta en 0-9, usar target % 10
-    dv = target % 10;
-  }
-
-  return { dv, dot, h, target };
+  if(dv===-1) dv=target%10;
+  return {dv:dv, dot:dot, h:h, target:target};
 }
 
 function generarCodigo(){
-  const carrera = document.getElementById('carrera').value;
-  const corrRaw = document.getElementById('correlativo').value.trim();
+  var carrera = document.getElementById('carrera').value;
+  var corrRaw = document.getElementById('correlativo').value.trim();
+  if(!corrRaw){ alert('Ingresa el correlativo.'); return; }
 
-  if(corrRaw.length===0){
-    alert('Por favor ingresa el correlativo de tu carné.');
-    return;
-  }
+  updateVector();
 
-  // Leer vector si está abierto
-  updateVectorDisplay();
+  var fecha  = getFecha();
+  var correl = corrRaw.padStart(5,'0').slice(-5);
+  var code11 = (fecha+carrera+correl).split('').map(Number);
+  var res    = calcDV(code11);
+  var code12 = code11.concat(res.dv);
+  var code12str = code12.join('');
 
-  const fecha  = getFecha();                          // 4 dígitos
-  const idCarr = carrera;                             // 2 dígitos
-  const correl = corrRaw.padStart(5,'0').slice(-5);   // 5 dígitos
-
-  // 11 dígitos sin verificador
-  const code11str = fecha + idCarr + correl;
-  const code11 = code11str.split('').map(Number);
-
-  const {dv, dot, h, target} = calcDigitoVerificador(code11);
-
-  const code12 = code11.concat(dv);
-  const code12str = code11str + dv;
-
-  // Mostrar código con bloques
-  const digitsEl = document.getElementById('codeDigits');
-  digitsEl.innerHTML = '';
-  code12.forEach((d,i)=>{
-    if(i===4||i===6||i===11){
-      const sep = document.createElement('div');
-      sep.className='digit-sep';
-      digitsEl.appendChild(sep);
-    }
-    const bl = document.createElement('div');
-    bl.className='digit-block'+(i===11?' verify':'');
-    bl.style.animationDelay=(i*0.04)+'s';
-    bl.textContent=d;
-    digitsEl.appendChild(bl);
-  });
+  // Mostrar código
+  document.getElementById('codeNumber').textContent = code12str;
 
   // Breakdown
-  document.getElementById('breakdown').innerHTML = `
-    <div class="breakdown-item"><div class="val">${fecha}</div><div class="lbl">Fecha (AAMM)</div></div>
-    <div class="breakdown-item"><div class="val">${idCarr}</div><div class="lbl">ID Carrera</div></div>
-    <div class="breakdown-item"><div class="val">${correl}</div><div class="lbl">Correlativo</div></div>
-    <div class="breakdown-item"><div class="val" style="color:var(--green)">${dv}</div><div class="lbl">Dígito Verificador</div></div>
-  `;
+  var meses=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  var carrNom = ['Electrónica','Sistemas','Telecomunicaciones'][parseInt(carrera)-1]||carrera;
+  document.getElementById('breakdown').innerHTML =
+    '<div class="breakdown-item"><div class="val">'+fecha+'</div><div class="lbl">Fecha</div></div>'+
+    '<div class="breakdown-item"><div class="val">'+carrera+'</div><div class="lbl">ID Carrera</div></div>'+
+    '<div class="breakdown-item"><div class="val">'+correl+'</div><div class="lbl">Correlativo</div></div>'+
+    '<div class="breakdown-item"><div class="val" style="color:var(--green)">'+res.dv+'</div><div class="lbl">D. Verificador</div></div>';
 
   // Detalle matemático
-  const cDot = vectorControl.slice(0,11).map((c,i)=>`${c}·${code11[i]}`).join(' + ');
   document.getElementById('mathDetail').innerHTML =
-    `<span>Vector de control:</span> c = [${vectorControl.join(', ')}]<br>
-     <span>Código x:</span> [${code12.join(', ')}]<br>
-     <span>Producto c·x (primeros 11):</span> ${cDot} = ${dot*1} ≡ ${dot%16} (mod 16)<br>
-     <span>h (dígitos pares > 4):</span> ${h}<br>
-     <span>Ecuación:</span> c·x + h = ${(vectorControl[11]*dv + dot + h) % 16} (mod 16)
-     <span class="result-ok"> ✔ = 0 en Z₁₆</span>`;
+    '<span>Vector c:</span> ['+vectorControl.join(', ')+']<br>'+
+    '<span>c·x (11 díg) mod 16:</span> '+res.dot+'<br>'+
+    '<span>h (pares &gt; 4):</span> '+res.h+'<br>'+
+    '<span>target:</span> '+res.target+' → dv = '+res.dv+
+    ' <span class="ok">✔ c·x + h = 0 en Z₁₆</span>';
 
-  // Data detail
-  const carreraName = ['Electrónica','Sistemas','Telecomunicaciones'][parseInt(carrera)-1]||carrera;
-  document.getElementById('dataDetail').innerHTML =
-    `<span style="color:var(--accent)">CARRERA:</span>     ${carreraName}<br>
-     <span style="color:var(--accent)">ID CARRERA:</span>  ${idCarr}<br>
-     <span style="color:var(--accent)">CORRELATIVO:</span> ${correl}<br>
-     <span style="color:var(--accent)">FECHA GEN.:</span>  ${fecha}<br>
-     <span style="color:var(--accent)">CÓDIGO:</span>      ${code12str}<br>
-     <span style="color:var(--green)">ESTADO:</span>       VÁLIDO ✔`;
+  // Resumen
+  document.getElementById('resumen').innerHTML =
+    '<span style="color:var(--accent)">CARRERA:</span>     '+carrNom+'<br>'+
+    '<span style="color:var(--accent)">CORRELATIVO:</span> '+correl+'<br>'+
+    '<span style="color:var(--accent)">FECHA:</span>       '+fecha+'<br>'+
+    '<span style="color:var(--accent)">CÓDIGO:</span>      '+code12str+'<br>'+
+    '<span style="color:var(--green)">ESTADO:</span>       VÁLIDO ✔';
 
   // QR
   document.getElementById('qrcode').innerHTML='';
   new QRCode(document.getElementById('qrcode'),{
     text: code12str,
-    width: 256, height: 256,
-    colorDark:'#000', colorLight:'#fff',
+    width: 240, height: 240,
+    colorDark:'#000000', colorLight:'#ffffff',
     correctLevel: QRCode.CorrectLevel.H
   });
 
   document.getElementById('resultSection').classList.add('show');
-  document.getElementById('resultSection').scrollIntoView({behavior:'smooth', block:'start'});
+  setTimeout(function(){ document.getElementById('resultSection').scrollIntoView({behavior:'smooth'}); }, 100);
 }
 
 function downloadQR(){
-  setTimeout(()=>{
-    const canvas = document.querySelector('#qrcode canvas');
-    if(!canvas){ alert('El QR aún no se ha generado.'); return; }
-    const link = document.createElement('a');
-    link.download = 'carne_qr.png';
-    link.href = canvas.toDataURL();
+  setTimeout(function(){
+    var canvas = document.querySelector('#qrcode canvas');
+    if(!canvas){ alert('Genera un código primero.'); return; }
+    var link = document.createElement('a');
+    link.download='carne_qr.png';
+    link.href=canvas.toDataURL();
     link.click();
-  }, 300);
+  }, 200);
 }
 
 function resetForm(){
