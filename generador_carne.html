@@ -533,9 +533,9 @@
       <div class="field">
         <label>Carrera</label>
         <select id="carrera">
-          <option value="07">Electrónica (07)</option>
-          <option value="08" selected>Sistemas (08)</option>
-          <option value="14">Telecomunicaciones (14)</option>
+          <option value="01">Electrónica (01)</option>
+          <option value="02" selected>Sistemas (02)</option>
+          <option value="03">Telecomunicaciones (03)</option>
         </select>
       </div>
 
@@ -744,13 +744,26 @@ function generarCodigo(){
      <span style="color:var(--accent)">CÓDIGO:</span>      ${code12str}<br>
      <span style="color:var(--green)">ESTADO:</span>       VÁLIDO ✔`;
 
-  // QR
-  document.getElementById('qrcode').innerHTML='';
-  new QRCode(document.getElementById('qrcode'),{
-    text: code12str,
-    width: 256, height: 256,
-    colorDark:'#000000', colorLight:'#ffffff',
-    correctLevel: QRCode.CorrectLevel.M
+  // QR con canvas nativo
+  const qrDiv = document.getElementById('qrcode');
+  qrDiv.innerHTML='';
+  const qrCanvas = document.createElement('canvas');
+  qrDiv.appendChild(qrCanvas);
+  QRCode.toCanvas(qrCanvas, code12str, {
+    width: 256,
+    margin: 4,
+    color: { dark: '#000000', light: '#ffffff' },
+    errorCorrectionLevel: 'M'
+  }, function(err){
+    if(err){
+      // fallback a qrcodejs
+      qrDiv.innerHTML='';
+      new QRCode(qrDiv, {
+        text: code12str, width:256, height:256,
+        colorDark:'#000000', colorLight:'#ffffff',
+        correctLevel: QRCode.CorrectLevel.M
+      });
+    }
   });
 
   document.getElementById('resultSection').classList.add('show');
