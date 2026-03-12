@@ -325,15 +325,14 @@ function showResult(valid, code, detail){
     :'El código NO cumple c·x + h = 0 en Z₁₆';
 
   if(detail){
-    var aa='20'+detail.fecha.slice(0,2);
-    var meses=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-    var mm=meses[parseInt(detail.fecha.slice(2,4))-1]||detail.fecha.slice(2,4);
+    var aa=detail.fecha; // los 4 dígitos son el año completo: ej. 2025
+    var mm='';
     var carrNom=CARRERAS[detail.idCarr]||('Código '+detail.idCarr);
     document.getElementById('rGrid').innerHTML=
       '<div class="data-row"><span class="key">CÓDIGO</span><span class="val accent">'+detail.code+'</span></div>'+
       '<div class="data-row"><span class="key">CARRERA</span><span class="val">'+carrNom+' ('+detail.idCarr+')</span></div>'+
       '<div class="data-row"><span class="key">CORRELATIVO</span><span class="val">'+detail.correl+'</span></div>'+
-      '<div class="data-row"><span class="key">FECHA</span><span class="val">'+mm+' '+aa+'</span></div>'+
+      '<div class="data-row"><span class="key">AÑO</span><span class="val">'+aa+'</span></div>'+
       '<div class="data-row"><span class="key">DÍG. VERIFICADOR</span><span class="val">'+detail.dvInput+'</span></div>'+
       '<div class="data-row"><span class="key">ESTADO</span><span class="val '+(valid?'green':'red')+'">'+(valid?'VÁLIDO ✔':'INVÁLIDO ✗')+'</span></div>';
     document.getElementById('rMath').innerHTML=

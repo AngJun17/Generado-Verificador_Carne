@@ -84,8 +84,12 @@ select option{background:var(--surface2)}
         </select>
       </div>
       <div class="field">
+        <label>Año de ingreso (4 dígitos)</label>
+        <input type="text" id="anio" placeholder="2025" maxlength="4" inputmode="numeric" value="2025">
+      </div>
+      <div class="field">
         <label>Correlativo (últimos 5 dígitos del carné)</label>
-        <input type="text" id="correlativo" placeholder="08067" maxlength="5" inputmode="numeric">
+        <input type="text" id="correlativo" placeholder="08067" maxlength="5" inputmode="numeric" value="08067">
       </div>
       <div class="field full">
         <label>Vector de Control</label>
@@ -150,10 +154,7 @@ function updateVector(){
 }
 
 function getFecha(){
-  var now = new Date();
-  var yy = String(now.getFullYear()).slice(-2);
-  var mm = String(now.getMonth()+1).padStart(2,'0');
-  return yy+mm;
+  return document.getElementById('anio').value.trim();
 }
 
 function calcDV(d11){
@@ -177,6 +178,9 @@ function generarCodigo(){
   var corrRaw = document.getElementById('correlativo').value.trim();
   if(!corrRaw){ alert('Ingresa el correlativo.'); return; }
 
+  var anioRaw = document.getElementById('anio').value.trim();
+  if(!anioRaw || !/^\d{4}$/.test(anioRaw)){ alert('El año debe ser exactamente 4 dígitos numéricos. Ej: 2025'); return; }
+
   updateVector();
 
   var fecha  = getFecha();
@@ -193,7 +197,7 @@ function generarCodigo(){
   var meses=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
   var carrNom = ['Electrónica','Sistemas','Telecomunicaciones'][parseInt(carrera)-1]||carrera;
   document.getElementById('breakdown').innerHTML =
-    '<div class="breakdown-item"><div class="val">'+fecha+'</div><div class="lbl">Fecha</div></div>'+
+    '<div class="breakdown-item"><div class="val">'+fecha+'</div><div class="lbl">Año</div></div>'+
     '<div class="breakdown-item"><div class="val">'+carrera+'</div><div class="lbl">ID Carrera</div></div>'+
     '<div class="breakdown-item"><div class="val">'+correl+'</div><div class="lbl">Correlativo</div></div>'+
     '<div class="breakdown-item"><div class="val" style="color:var(--green)">'+res.dv+'</div><div class="lbl">D. Verificador</div></div>';
@@ -210,7 +214,7 @@ function generarCodigo(){
   document.getElementById('resumen').innerHTML =
     '<span style="color:var(--accent)">CARRERA:</span>     '+carrNom+'<br>'+
     '<span style="color:var(--accent)">CORRELATIVO:</span> '+correl+'<br>'+
-    '<span style="color:var(--accent)">FECHA:</span>       '+fecha+'<br>'+
+    '<span style="color:var(--accent)">AÑO:</span>         '+fecha+'<br>'+
     '<span style="color:var(--accent)">CÓDIGO:</span>      '+code12str+'<br>'+
     '<span style="color:var(--green)">ESTADO:</span>       VÁLIDO ✔';
 
