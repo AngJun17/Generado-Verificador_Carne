@@ -166,11 +166,12 @@ function calcDV(d11){
   var target = ((-dot-h)%16+16)%16;
   var c12 = vectorControl[11];
   var dv=-1;
-  for(var d=0;d<=9;d++){
+  // Buscar en 0-15 (Z16 completo) — siempre existe solución exacta
+  for(var d=0;d<=15;d++){
     if((c12*d)%16===target){ dv=d; break; }
   }
-  if(dv===-1) dv=target%10;
-  return {dv:dv, dot:dot, h:h, target:target};
+  var dvHex = dv.toString(16).toUpperCase(); // 10→A, 11→B ... 15→F
+  return {dv:dv, dvHex:dvHex, dot:dot, h:h, target:target};
 }
 
 function generarCodigo(){
@@ -187,8 +188,7 @@ function generarCodigo(){
   var correl = corrRaw.padStart(5,'0').slice(-5);
   var code11 = (fecha+carrera+correl).split('').map(Number);
   var res    = calcDV(code11);
-  var code12 = code11.concat(res.dv);
-  var code12str = code12.join('');
+  var code12str = code11.join('') + res.dvHex;
 
   // Mostrar código
   document.getElementById('codeNumber').textContent = code12str;
@@ -207,7 +207,7 @@ function generarCodigo(){
     '<span>Vector c:</span> ['+vectorControl.join(', ')+']<br>'+
     '<span>c·x (11 díg) mod 16:</span> '+res.dot+'<br>'+
     '<span>h (pares &gt; 4):</span> '+res.h+'<br>'+
-    '<span>target:</span> '+res.target+' → dv = '+res.dv+
+    '<span>target:</span> '+res.target+' → dv = '+res.dvHex+' (decimal: '+res.dv+')'+
     ' <span class="ok">✔ c·x + h = 0 en Z₁₆</span>';
 
   // Resumen

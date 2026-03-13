@@ -136,7 +136,7 @@ label{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--accent)
     <!-- TAB MANUAL -->
     <div class="tab-content" id="tab-manual">
       <label>Código de 12 dígitos</label>
-      <input type="text" class="manual-input" id="manualCode" placeholder="000000000000" maxlength="12" inputmode="numeric" oninput="this.value=this.value.replace(/\D/g,'')">
+      <input type="text" class="manual-input" id="manualCode" placeholder="000000000000" maxlength="12" oninput="this.value=this.value.replace(/[^0-9A-Fa-f]/g,'').toUpperCase()">
       <button class="btn-primary" onclick="verifyManual()">✔ VERIFICAR CÓDIGO</button>
     </div>
   </div>
@@ -279,16 +279,17 @@ function scanFrame(){
 // ── MANUAL ──
 function verifyManual(){
   var code=document.getElementById('manualCode').value.trim();
-  if(code.length!==12||!/^\d{12}$/.test(code)){ alert('Ingresa exactamente 12 dígitos.'); return; }
+  if(code.length!==12||!/^[0-9A-Fa-f]{12}$/.test(code)){ alert('Ingresa exactamente 12 caracteres (dígitos 0-9 o letra hex A-F en la última posición).'); return; }
   verifyCode(code);
 }
 
 // ── VERIFICACIÓN ──
 function verifyCode(code){
-  if(!/^\d{12}$/.test(code)){ showResult(false,code,null); return; }
-  var digits = code.split('').map(Number);
-  var d11 = digits.slice(0,11);
-  var dvInput = digits[11];
+  if(!/^\d{11}[0-9A-Fa-f]$/.test(code)){ showResult(false,code,null); return; }
+  // El último carácter puede ser hex (0-9 o A-F)
+  var dvInputHex = code.slice(-1).toUpperCase();
+  var dvInput = parseInt(dvInputHex, 16); // convierte 'A'→10, 'B'→11 ... '9'→9
+  var d11 = code.slice(0,11).split('').map(Number);
 
   var dot=0;
   for(var i=0;i<11;i++) dot+=vectorControl[i]*d11[i];
@@ -300,14 +301,14 @@ function verifyCode(code){
   var target=((-dot-h)%16+16)%16;
   var c12=vectorControl[11];
   var dvEsp=-1;
-  for(var d=0;d<=9;d++){ if((c12*d)%16===target){ dvEsp=d; break; } }
-  if(dvEsp===-1) dvEsp=target%10;
+  for(var d=0;d<=15;d++){ if((c12*d)%16===target){ dvEsp=d; break; } }
+  var dvEspHex=dvEsp.toString(16).toUpperCase();
 
   var valid=(dvInput===dvEsp);
   var detail={
     code:code,
     fecha:code.slice(0,4), idCarr:code.slice(4,6),
-    correl:code.slice(6,11), dvInput:dvInput,
+    correl:code.slice(6,11), dvInput:dvInput, dvInputHex:dvInputHex, dvEspHex:dvEspHex,
     dot:dot, h:h, target:target, dvEsp:dvEsp, valid:valid
   };
   showResult(valid, code, detail);
@@ -333,13 +334,13 @@ function showResult(valid, code, detail){
       '<div class="data-row"><span class="key">CARRERA</span><span class="val">'+carrNom+' ('+detail.idCarr+')</span></div>'+
       '<div class="data-row"><span class="key">CORRELATIVO</span><span class="val">'+detail.correl+'</span></div>'+
       '<div class="data-row"><span class="key">AÑO</span><span class="val">'+aa+'</span></div>'+
-      '<div class="data-row"><span class="key">DÍG. VERIFICADOR</span><span class="val">'+detail.dvInput+'</span></div>'+
+      '<div class="data-row"><span class="key">DÍG. VERIFICADOR</span><span class="val">'+detail.dvInputHex+' (decimal: '+detail.dvInput+')</span></div>'+
       '<div class="data-row"><span class="key">ESTADO</span><span class="val '+(valid?'green':'red')+'">'+(valid?'VÁLIDO ✔':'INVÁLIDO ✗')+'</span></div>';
     document.getElementById('rMath').innerHTML=
       '<span class="hl">Vector c:</span> ['+vectorControl.join(', ')+']<br>'+
       '<span class="hl">c·x (11) mod 16:</span> '+detail.dot+'<br>'+
       '<span class="hl">h (pares &gt; 4):</span> '+detail.h+'<br>'+
-      '<span class="hl">DV esperado:</span> '+detail.dvEsp+' | DV recibido: '+detail.dvInput+'<br>'+
+      '<span class="hl">DV esperado:</span> '+detail.dvEspHex+' | DV recibido: '+detail.dvInputHex+'<br>'+
       (valid?'<span class="ok">✔ Coinciden — VÁLIDO</span>':'<span class="err">✗ No coinciden — INVÁLIDO</span>');
   } else {
     document.getElementById('rGrid').innerHTML='<div class="data-row"><span class="key">CÓDIGO</span><span class="val red">'+code+'</span></div>';
